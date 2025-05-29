@@ -8,6 +8,7 @@ _Everything happens in a beautiful graphical interface!_
 ![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)
 ![PyQt6](https://img.shields.io/badge/PyQt6-GUI-orange?logo=qt)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-lightgrey?logo=sqlite)
+![SQLite](https://img.shields.io/badge/MariaDB-Database-white?logo=mariadb)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
 
 </div>
