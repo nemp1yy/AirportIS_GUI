@@ -1,6 +1,3 @@
-Absolutely! Here’s a beautiful, modern, and well-structured English README for your project.  
-This version uses visual elements (badges, emoji, and markdown tricks) for maximum appeal.
-
 ---
 
 <div align="center">
