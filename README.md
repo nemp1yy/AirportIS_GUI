@@ -1,39 +1,44 @@
-Certainly! Here’s an improved and more visually appealing README for your project, written in English:
+Absolutely! Here’s a beautiful, modern, and well-structured English README for your project.  
+This version uses visual elements (badges, emoji, and markdown tricks) for maximum appeal.
 
 ---
+
+<div align="center">
 
 # ✈️ AirportIS_GUI
 
-A modern graphical application for managing an airport’s flight database, built with Python and PyQt6.  
-The entire workflow is available through a user-friendly graphical interface.
+**A modern, user-friendly application for managing airport flight data, built with Python and PyQt6.**  
+_Everything happens in a beautiful graphical interface!_
+
+![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)
+![PyQt6](https://img.shields.io/badge/PyQt6-GUI-orange?logo=qt)
+![SQLite](https://img.shields.io/badge/SQLite-Database-lightgrey?logo=sqlite)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
+
+</div>
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
-- **View Flight Table**  
-  Instantly see all scheduled flights in a sortable, filterable table.
-- **Add & Remove Flights**  
-  Easily add new flight records or remove outdated ones with a click.
-- **Advanced Search**  
-  Find flights using flexible queries in a dedicated search window.
-- **Column Sorting**  
-  Quickly organize data by any parameter.
-- **Reset Search**  
-  Return to the full dataset with a single click.
+- **Visual Flight Table** – View, sort, and filter all airport flights in an intuitive table.
+- **Add & Remove Flights** – Quickly add new flights or delete outdated records.
+- **Advanced Search** – Find flights using flexible search tools in a dedicated window.
+- **Instant Sorting** – Organize data by any column with just a click.
+- **One-Click Reset** – Instantly restore the full flight list after a search.
 
 ---
 
-## 🛠️ Technologies Used
+## 🛠️ Technologies
 
 - **Python 3**
-- **PyQt6** (GUI framework)
-- **SQLite** (database, via QtSql)
-- **Qt Designer** (.ui files for interface design)
+- **PyQt6** – for a beautiful, responsive UI
+- **SQLite** – fast and lightweight database
+- **Qt Designer** – visual interface design
 
 ---
 
-## ⚡ Installation & Launch
+## 🚀 Getting Started
 
 1. **Clone the repository:**
     ```bash
@@ -41,30 +46,27 @@ The entire workflow is available through a user-friendly graphical interface.
     cd AirportIS_GUI
     ```
 
-2. **Install the required dependencies:**
+2. **Install the dependencies:**
     ```bash
     pip install PyQt6
     ```
 
-3. **Run the application:**
+3. **Run the app:**
     ```bash
     python main.py
     ```
 
 ---
 
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 AirportIS_GUI/
-│
-├── main.py                # Entry point: launches the application
-│
-├── gui/                   # GUI modules
-│   ├── MainWindow.py      # Main window (table view & controls)
-│   ├── SearchWindow.py    # Search dialog window
-│   └── design/            # Qt Designer .ui files
-│
+├── main.py                # Entry point - app launcher
+├── gui/                   # All GUI modules
+│   ├── MainWindow.py      # Main window logic
+│   ├── SearchWindow.py    # Search dialog logic
+│   └── design/            # .ui files (Qt Designer)
 └── data/                  # Database files (e.g., data.db)
 ```
 
@@ -72,12 +74,23 @@ AirportIS_GUI/
 
 ## 💡 Notes
 
-- **Full GUI:** All operations are performed via a graphical interface—no command line required.
-- **Database:** Ensure that a valid database file exists in the `data/` folder before running the app.
-- **Auto-Loading:** The application automatically loads and displays the flight table on startup.
+- **Full GUI:** All features are accessible via the graphical interface—no command line required.
+- **Database:** Ensure that `data/data.db` exists before launching.  
+- **Auto-Load:** The flight table loads automatically at app startup.
+
+---
+
+## 📸 Screenshots
+
+> _Add your screenshots here for maximum effect!_
 
 ---
 
 ## 👤 Author
 
-**[nemp1yy](https://github.com/nemp1yy)**
+[**nemp1yy**](https://github.com/nemp1yy)
+
+---
+
+Feel free to copy and paste this directly into your `README.md` file!  
+If you want further customization, badges, or have screenshots to showcase, let me know!
