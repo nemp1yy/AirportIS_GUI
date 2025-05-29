@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>841</width>
+    <width>840</width>
     <height>406</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="add_button">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -51,7 +51,7 @@
      </size>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="search_button">
     <property name="geometry">
      <rect>
       <x>240</x>
@@ -74,7 +74,7 @@
      </size>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="delete_button">
     <property name="geometry">
      <rect>
       <x>120</x>
@@ -123,7 +123,7 @@
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="refresh_button">
     <property name="geometry">
      <rect>
       <x>800</x>
@@ -152,7 +152,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>841</width>
+     <width>840</width>
      <height>21</height>
     </rect>
    </property>
@@ -175,7 +175,12 @@
     <property name="title">
      <string>Справка</string>
     </property>
-    <addaction name="action"/>
+    <addaction name="statuses"/>
+    <addaction name="airlines"/>
+    <addaction name="airports"/>
+    <addaction name="aircraft_types"/>
+    <addaction name="separator"/>
+    <addaction name="action_8"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_3"/>
@@ -194,6 +199,31 @@
   <action name="action">
    <property name="text">
     <string>О программе...</string>
+   </property>
+  </action>
+  <action name="statuses">
+   <property name="text">
+    <string>Статусы</string>
+   </property>
+  </action>
+  <action name="airlines">
+   <property name="text">
+    <string>Авиакомпании</string>
+   </property>
+  </action>
+  <action name="airports">
+   <property name="text">
+    <string>Аэропорты</string>
+   </property>
+  </action>
+  <action name="action_8">
+   <property name="text">
+    <string>О программе</string>
+   </property>
+  </action>
+  <action name="aircraft_types">
+   <property name="text">
+    <string>Типы самолётов</string>
    </property>
   </action>
  </widget>

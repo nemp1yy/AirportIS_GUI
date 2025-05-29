@@ -1,5 +1,5 @@
 from PyQt6 import uic, QtCore, QtGui
-from PyQt6.QtWidgets import QMainWindow, QApplication
+from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox
 from PyQt6 import QtWidgets
 import sys
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQueryModel, QSqlQuery
@@ -15,24 +15,37 @@ class MainWindow(QMainWindow):
         self.db = QSqlDatabase.addDatabase('QSQLITE')
         self.db.setDatabaseName('data/data.db')
         if not self.db.open():
-            print("Не удалось открыть базу данных")
-            return False
+            QMessageBox.critical(self, "Ошибка БД", "Не удалось подключиться к базе данных")
+            sys.exit(1)
 
-        self.table1 = QSqlTableModel()
-        self.table1.setTable("flights")
-        self.table1.select()
-        self.tableView.setModel(self.table1)
-
+        self.load_flights()
 
         self.tableView.resizeColumnsToContents()
         self.tableView.setSortingEnabled(True)
         self.tableView.setColumnHidden(0, True)
 
-        self.pushButton.clicked.connect(self.newRow)
-        self.pushButton_2.clicked.connect(self.delRow)
-        self.pushButton_3.clicked.connect(self.show_search_window)
-        self.pushButton_4.clicked.connect(self.resetTable)
+        self.add_button.clicked.connect(self.newRow)
+        self.delete_button.clicked.connect(self.delRow)
+        self.search_button.clicked.connect(self.show_search_window)
+        self.refresh_button.clicked.connect(self.resetTable)
 
+    def load_flights(self):
+        model = QSqlQueryModel(self)
+        query = '''
+        SELECT f.id, f.flight_number, al.name AS airline, ac.model AS aircraft,
+               dap.code AS departure, aap.code AS arrival,
+               f.departure_time, f.arrival_time,
+               st.name AS status, f.gate
+        FROM flights f
+        LEFT JOIN airlines al ON f.airline_id = al.id
+        LEFT JOIN aircraft_types ac ON f.aircraft_type_id = ac.id
+        LEFT JOIN airports dap ON f.departure_airport_id = dap.id
+        LEFT JOIN airports aap ON f.arrival_airport_id = aap.id
+        LEFT JOIN statuses st ON f.status_id = st.id
+        '''
+        model.setQuery(query, self.db)
+        self.tableView.setModel(model)
+        self.tableView.resizeColumnsToContents()
 
     def newRow(self):
         print('Добавление строки')
