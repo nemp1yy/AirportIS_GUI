@@ -81,7 +81,3 @@ AirportIS_GUI/
 ## 👤 Author
 
 **[nemp1yy](https://github.com/nemp1yy)**
-
----
-
-Feel free to copy and paste this into your `README.md` file! If you want to add badges, screenshots, or extra sections, just let me know.
