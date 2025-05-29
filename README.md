@@ -69,28 +69,3 @@ AirportIS_GUI/
 │   └── design/            # .ui files (Qt Designer)
 └── data/                  # Database files (e.g., data.db)
 ```
-
----
-
-## 💡 Notes
-
-- **Full GUI:** All features are accessible via the graphical interface—no command line required.
-- **Database:** Ensure that `data/data.db` exists before launching.  
-- **Auto-Load:** The flight table loads automatically at app startup.
-
----
-
-## 📸 Screenshots
-
-> _Add your screenshots here for maximum effect!_
-
----
-
-## 👤 Author
-
-[**nemp1yy**](https://github.com/nemp1yy)
-
----
-
-Feel free to copy and paste this directly into your `README.md` file!  
-If you want further customization, badges, or have screenshots to showcase, let me know!
