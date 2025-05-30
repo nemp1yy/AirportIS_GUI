@@ -1,132 +1,100 @@
-from PyQt6 import uic, QtCore, QtGui
-from PyQt6.QtWidgets import QMainWindow, QApplication, QMessageBox
-from PyQt6 import QtWidgets
-from PyQt6.QtSql import QSqlDatabase, QSqlTableModel, QSqlQueryModel, QSqlQuery
+from PyQt6 import uic
+from PyQt6.QtWidgets import QMainWindow
 
 from gui.SearchWindow import SearchWindow
 from gui.ReferenceWindow import ReferenceWindow
-
+from gui.AboutWindow import AboutWindow
 from config.cfg import Config
+from utils.database import DatabaseManager, SQLQueries
+from utils.ui_helpers import TableManager, MessageHelper
 
-import sys
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        cfg = Config("config.json")
-        # Загружаем UI файл
         uic.loadUi("gui/design/main.ui", self)
 
-        self.db = QSqlDatabase.addDatabase('QSQLITE')
-        self.db.setDatabaseName('data/data.db')
-        if not self.db.open():
-            QMessageBox.critical(self, "Ошибка БД", "Не удалось подключиться к базе данных")
-            sys.exit(1)
+        # Инициализация
+        Config("config.json")
+        self.db = DatabaseManager.connect()
 
-        self.load_flights()
+        # Используем новый метод для создания реляционной модели
+        self.model = DatabaseManager.create_flights_relational_model(self.db)
+        TableManager.setup_table_view(self.tableView, self.model)
 
-        self.tableView.resizeColumnsToContents()
-        self.tableView.setSortingEnabled(True)
-        self.tableView.setColumnHidden(0, True)
+        # Подключение сигналов
+        self._connect_buttons()
+        self._connect_menu_actions()
 
-        self.add_button.clicked.connect(self.newRow)
-        self.delete_button.clicked.connect(self.delRow)
-        self.search_button.clicked.connect(self.show_search_window)
-        self.refresh_button.clicked.connect(self.resetTable)
+    def _connect_buttons(self):
+        """Подключение кнопок"""
+        self.add_button.clicked.connect(self._add_new_row)
+        self.delete_button.clicked.connect(self._delete_selected_row)
+        self.search_button.clicked.connect(self._show_search_dialog)
+        self.refresh_button.clicked.connect(self._refresh_table)
 
-        self.actionAirlines.triggered.connect(lambda: self.show_reference_dialog("airlines"))
-        self.actionAircraftTypes.triggered.connect(lambda: self.show_reference_dialog("aircraft_types"))
-        self.actionAirports.triggered.connect(lambda: self.show_reference_dialog("airports"))
-        self.actionStatuses.triggered.connect(lambda: self.show_reference_dialog("statuses"))
+    def _add_new_row(self):
+        """Добавление новой строки"""
+        try:
+            row = self.model.rowCount()
+            if self.model.insertRow(row):
+                # Устанавливаем курсор на новую строку (номер рейса)
+                index = self.model.index(row, 1)
+                self.tableView.setCurrentIndex(index)
+                self.tableView.edit(index)
+            else:
+                MessageHelper.show_error(self, "Ошибка", "Не удалось добавить новую запись")
+        except Exception as e:
+            MessageHelper.show_error(self, "Ошибка", f"Ошибка при добавлении: {e}")
 
-    def load_flights(self):
-        model = QSqlQueryModel(self)
-        query = '''
-        SELECT f.id, f.flight_number, al.name AS airline, ac.model AS aircraft,
-               dap.code AS departure, aap.code AS arrival,
-               f.departure_time, f.arrival_time,
-               st.name AS status, f.gate
-        FROM flights f
-        LEFT JOIN airlines al ON f.airline_id = al.id
-        LEFT JOIN aircraft_types ac ON f.aircraft_type_id = ac.id
-        LEFT JOIN airports dap ON f.departure_airport_id = dap.id
-        LEFT JOIN airports aap ON f.arrival_airport_id = aap.id
-        LEFT JOIN statuses st ON f.status_id = st.id
-        '''
-        model.setQuery(query, self.db)
-        self.tableView.setModel(model)
-        self.tableView.resizeColumnsToContents()
+    def _connect_menu_actions(self):
+        """Подключение действий меню"""
+        menu_actions = {
+            self.actionAirlines: "airlines",
+            self.actionAircraftTypes: "aircraft_types",
+            self.actionAirports: "airports",
+            self.actionStatuses: "statuses"
+        }
+        for action, table in menu_actions.items():
+            action.triggered.connect(lambda checked, t=table: ReferenceWindow(t, self).exec())
 
-    def newRow(self):
-        print('Добавление строки')
-        kol = int(self.table1.rowCount())
-        self.table1.insertRow(kol)
 
-    def delRow(self):
-        print("Удаление строки")
-        self.table1.removeRow(self.tableView.currentIndex().row())
-        self.table1.select()
 
-    def show_search_window(self):
-        print("Создаю SearchWindow")
-        search_dialog = SearchWindow(self)
-        search_dialog.search_requested.connect(self.apply_search)
-        search_dialog.exec()
-        print("Окно закрыто")
-
-    def apply_search(self, sql, params):
-        """Применяет результаты поиска"""
-        model = QSqlQueryModel()
-
-        if params:
-            # Для параметризованных запросов
-            query = QSqlQuery(self.db)
-            query.prepare(sql)
-            for param in params:
-                query.addBindValue(param)
-            query.exec()
-            model.setQuery(query)
-        else:
-            model.setQuery(sql, self.db)
-
-        if model.lastError().isValid():
-            QtWidgets.QMessageBox.warning(self, "Ошибка", "Не удалось выполнить поиск")
+    def _delete_selected_row(self):
+        """Удаление выбранной строки"""
+        row = self.tableView.currentIndex().row()
+        if row < 0:
+            MessageHelper.show_error(self, "Ошибка", "Не выбрана запись для удаления")
             return
 
-        self.tableView.setModel(model)
-        self.tableView.resizeColumnsToContents()
-
-    def resetTable(self):
-        """Сбрасывает результаты поиска и возвращает полную таблицу"""
-        table = QSqlTableModel(self, self.db)
-        query = '''
-                SELECT f.id, f.flight_number, al.name AS airline, ac.model AS aircraft,
-                       dap.code AS departure, aap.code AS arrival,
-                       f.departure_time, f.arrival_time,
-                       st.name AS status, f.gate
-                FROM flights f
-                LEFT JOIN airlines al ON f.airline_id = al.id
-                LEFT JOIN aircraft_types ac ON f.aircraft_type_id = ac.id
-                LEFT JOIN airports dap ON f.departure_airport_id = dap.id
-                LEFT JOIN airports aap ON f.arrival_airport_id = aap.id
-                LEFT JOIN statuses st ON f.status_id = st.id
-                '''
-        table.setQuery(query, self.db)
-        self.tableView.setModel(table)
-
-        self.tableView.resizeColumnsToContents()
-        self.tableView.setModel(table)
-        self.tableView.resizeColumnsToContents()
-        self.tableView.setSortingEnabled(True)
-        self.tableView.setColumnHidden(0, True)
-        print("Поиск сброшен, отображается вся таблица")
-
-    def show_reference_dialog(self, table_name):
         try:
-
-            dialog = ReferenceWindow(table_name, self)
-            dialog.exec()
-
+            if self.model.removeRow(row):
+                self.model.submitAll()
+                if self.model.lastError().isValid():
+                    MessageHelper.show_error(self, "Ошибка", f"Ошибка удаления: {self.model.lastError().text()}")
+                    self.model.revertAll()
+            else:
+                MessageHelper.show_error(self, "Ошибка", "Не удалось удалить запись")
         except Exception as e:
-            print(f"Ошибка при открытии диалога: {e}")
+            MessageHelper.show_error(self, "Ошибка", f"Ошибка при удалении: {e}")
+
+    def _show_search_dialog(self):
+        """Показ диалога поиска"""
+        dialog = SearchWindow(self)
+        dialog.search_requested.connect(self._apply_search)
+        dialog.exec()
+
+    def _apply_search(self, sql, params):
+        """Применение результатов поиска"""
+        # Для поиска используем исходный подход с JOIN
+        search_model = DatabaseManager.create_query_model(self.db, sql, params)
+        if search_model.lastError().isValid():
+            MessageHelper.show_error(self, "Ошибка", f"Поиск не выполнен: {search_model.lastError().text()}")
+            return
+        TableManager.setup_table_view(self.tableView, search_model)
+
+    def _refresh_table(self):
+        """Обновление таблицы"""
+        # Возвращаемся к основной редактируемой модели
+        self.model = DatabaseManager.create_flights_relational_model(self.db)
+        TableManager.setup_table_view(self.tableView, self.model)

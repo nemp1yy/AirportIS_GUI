@@ -1,53 +1,50 @@
 from PyQt6 import uic
-from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtWidgets import QDialog
 from PyQt6.QtSql import QSqlTableModel, QSqlDatabase
+from utils.ui_helpers import TableManager, MessageHelper
+
 
 class ReferenceWindow(QDialog):
     def __init__(self, table_name, parent=None):
         super().__init__(parent)
         uic.loadUi("gui/design/reference.ui", self)
 
-        self.tableName = table_name
-
+        # Инициализация модели
         self.model = QSqlTableModel(self)
-        self.model.setTable(self.tableName)
+        self.model.setTable(table_name)
         self.model.select()
 
-        self.tableView.setModel(self.model)
-        self.tableView.resizeColumnsToContents()
-        self.tableView.setSortingEnabled(True)
-        self.tableView.setColumnHidden(0, True)
+        # Настройка UI
+        TableManager.setup_table_view(self.tableView, self.model)
+        self._connect_buttons()
 
-        self.add_button.clicked.connect(self.add_row)
-        self.delete_button.clicked.connect(self.del_row)
-        self.save_button.clicked.connect(self.save_changes)
-        self.update_button.clicked.connect(self.resetTable)
+    def _connect_buttons(self):
+        """Подключение кнопок"""
+        self.add_button.clicked.connect(lambda: self.model.insertRow(self.model.rowCount()))
+        self.delete_button.clicked.connect(self._delete_selected)
+        self.save_button.clicked.connect(self._save_and_close)
+        self.update_button.clicked.connect(self._refresh_model)
 
-    def add_row(self):
-        self.model.insertRow(self.model.rowCount())
-
-    def del_row(self):
-        index = self.tableView.currentIndex()
+    def _delete_selected(self):
+        """Удаление выбранной строки"""
+        index = self.tableView.currentIndex()   Aw!vx;
         if index.isValid():
             self.model.removeRow(index.row())
 
-    def save_changes(self):
-        if not self.model.submitAll():
-            QMessageBox.warning(self, "Ошибка", "Не удалось сохранить изменения")
+    def _save_and_close(self):
+        """Сохранение и закрытие"""
+        if self.model.submitAll():
+            self.close()
+        else:
+            MessageHelper.show_error(self, "Ошибка", "Не удалось сохранить изменения")
 
-        self.close()
-
-    def resetTable(self):
+    def _refresh_model(self):
+        """Обновление модели"""
         try:
-            db = QSqlDatabase.database()  # Получаем текущее подключение к БД
-            self.model = QSqlTableModel(self, db)
-            self.model.setTable(self.tableName)
+            table_name = self.model.tableName()
+            self.model = QSqlTableModel(self, QSqlDatabase.database())
+            self.model.setTable(table_name)
             self.model.select()
-
-            self.tableView.setModel(self.model)
-            self.tableView.resizeColumnsToContents()
-            self.tableView.setSortingEnabled(True)
-            self.tableView.setColumnHidden(0, True)
-
+            TableManager.setup_table_view(self.tableView, self.model)
         except Exception as e:
-            QMessageBox.warning(self, "Ошибка", f"Произошла ошибка: {e}")
+            MessageHelper.show_error(self, "Ошибка", f"Произошла ошибка: {e}")

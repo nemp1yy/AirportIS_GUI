@@ -6,7 +6,7 @@ import sys
 
 print("Проверка БД...", end=" ")
 
-db = create_db()
+create_db()
 # cfg = Config("config.json")
 #
 # type_db = cfg.get_type_db()
