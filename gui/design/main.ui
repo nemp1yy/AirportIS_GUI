@@ -175,12 +175,12 @@
     <property name="title">
      <string>Справка</string>
     </property>
-    <addaction name="statuses"/>
-    <addaction name="airlines"/>
-    <addaction name="airports"/>
-    <addaction name="aircraft_types"/>
+    <addaction name="actionStatuses"/>
+    <addaction name="actionAirlines"/>
+    <addaction name="actionAirports"/>
+    <addaction name="actionAircraftTypes"/>
     <addaction name="separator"/>
-    <addaction name="action_8"/>
+    <addaction name="about_program"/>
    </widget>
    <addaction name="menu"/>
    <addaction name="menu_3"/>
@@ -201,27 +201,27 @@
     <string>О программе...</string>
    </property>
   </action>
-  <action name="statuses">
+  <action name="actionStatuses">
    <property name="text">
     <string>Статусы</string>
    </property>
   </action>
-  <action name="airlines">
+  <action name="actionAirlines">
    <property name="text">
     <string>Авиакомпании</string>
    </property>
   </action>
-  <action name="airports">
+  <action name="actionAirports">
    <property name="text">
     <string>Аэропорты</string>
    </property>
   </action>
-  <action name="action_8">
+  <action name="about_program">
    <property name="text">
     <string>О программе</string>
    </property>
   </action>
-  <action name="aircraft_types">
+  <action name="actionAircraftTypes">
    <property name="text">
     <string>Типы самолётов</string>
    </property>

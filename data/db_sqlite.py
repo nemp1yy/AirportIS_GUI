@@ -104,7 +104,7 @@ class create_db:
             # Вставка тестового рейса
 
         def add_test_flight(self):
-            cursor.execute("""
+            self.cursor.execute("""
             INSERT INTO flights (
                 flight_number, airline_id, aircraft_type_id,
                 departure_airport_id, arrival_airport_id,
