@@ -7,17 +7,17 @@ import sys
 print("Проверка БД...", end=" ")
 
 db = create_db()
-cfg = Config("config.json")
-
-type_db = cfg.get_type_db()
-
-if type_db == "sqlite":
-    print("Используется SQLite")
-elif type_db == "myriadb":
-    print("Используется MariaDB")
-else:
-    print("Неизвестный тип БД")
-    exit(1)
+# cfg = Config("config.json")
+#
+# type_db = cfg.get_type_db()
+#
+# if type_db == "sqlite":
+#     print("Используется SQLite")
+# elif type_db == "myriadb":
+#     print("Используется MariaDB")
+# else:
+#     print("Неизвестный тип БД")
+#     exit(1)
 
 app = QApplication(sys.argv)
 window = MainWindow()
