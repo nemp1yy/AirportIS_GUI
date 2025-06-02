@@ -1,29 +1,19 @@
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QSortFilterProxyModel, Qt
-from PyQt6.QtSql import QSqlRelationalDelegate, QSqlRelationalTableModel
 from datetime import datetime
 
 
 class TableManager:
+    """Менеджер для работы с таблицами"""
+
     @staticmethod
-    def setup_table_view(table_view, model):
-        """Настройка представления таблицы"""
+    def setup_table_view(table_view, model, hide_id=True):
+        """Стандартная настройка TableView"""
         table_view.setModel(model)
-
-        # Устанавливаем делегат для выпадающих списков
-        if isinstance(model, QSqlRelationalTableModel):
-            delegate = QSqlRelationalDelegate(table_view)
-            table_view.setItemDelegate(delegate)
-
-        # Настройка внешнего вида
         table_view.resizeColumnsToContents()
-        table_view.setAlternatingRowColors(True)
-        table_view.setSelectionBehavior(table_view.SelectionBehavior.SelectRows)
-        table_view.setSelectionMode(table_view.SelectionMode.SingleSelection)
-
-        # Скрываем ID столбец
-        if model.columnCount() > 0:
+        table_view.setSortingEnabled(True)
+        if hide_id:
             table_view.setColumnHidden(0, True)
 
 
@@ -132,7 +122,7 @@ class FlightFilterProxyModel(QSortFilterProxyModel):
                     continue
 
             if cell_time is None:
-                return True  # Если не удалось достать, показываем строку
+                return True  # Если не удалось распарсить, показываем строку
 
             start_dt = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
             end_dt = datetime.strptime(end_time, "%Y-%m-%d %H:%M")
@@ -256,49 +246,6 @@ class SearchConditionBuilder:
             conditions.append(f"{field} <= ?")
             params.append(end_time)
 
-    @staticmethod
-    def build_filter_string(params):
-        """Построение строки фильтра для QSqlRelationalTableModel"""
-        conditions = []
-
-        # Простые поля (прямое сравнение по столбцам основной таблицы)
-        if params.get('flight'):
-            conditions.append(f"flights.flight_number LIKE '%{params['flight']}%'")
-
-        if params.get('gate'):
-            conditions.append(f"flights.gate LIKE '%{params['gate']}%'")
-
-        # Связанные таблицы - используем JOIN в фильтре
-        if params.get('airline'):
-            conditions.append(f"airlines.name LIKE '%{params['airline']}%'")
-
-        if params.get('departure_from'):
-            conditions.append(f"(departure_airports.name LIKE '%{params['departure_from']}%' OR "
-                              f"departure_airports.city LIKE '%{params['departure_from']}%' OR "
-                              f"departure_airports.code LIKE '%{params['departure_from']}%')")
-
-        if params.get('destination'):
-            conditions.append(f"(arrival_airports.name LIKE '%{params['destination']}%' OR "
-                              f"arrival_airports.city LIKE '%{params['destination']}%' OR "
-                              f"arrival_airports.code LIKE '%{params['destination']}%')")
-
-        if params.get('aircraft_type'):
-            conditions.append(f"aircraft_types.model LIKE '%{params['aircraft_type']}%'")
-
-        if params.get('status') and params['status'] != "Все статусы":
-            conditions.append(f"statuses.name = '{params['status']}'")
-
-        # Временные диапазоны
-        if params.get('departure_range'):
-            start, end = params['departure_range']
-            conditions.append(f"flights.departure_time BETWEEN '{start}' AND '{end}'")
-
-        if params.get('arrival_range'):
-            start, end = params['arrival_range']
-            conditions.append(f"flights.arrival_time BETWEEN '{start}' AND '{end}'")
-
-        return " AND ".join(conditions) if conditions else ""
-
 
 class FilterHelper:
     """Помощник для работы с фильтрами таблиц"""
@@ -317,6 +264,8 @@ class FilterHelper:
         filter_model = FlightFilterProxyModel(parent)
         filter_model.setSourceModel(source_model)
 
+        # Стандартное соответствие колонок для рейсов
+        # Адаптируйте под вашу структуру данных
         default_mapping = {
             'flight': 1,  # Номер рейса
             'airline': 2,  # Авиакомпания
@@ -356,3 +305,27 @@ class FilterHelper:
             table_view.setColumnHidden(0, True)
 
         return filter_model
+
+class MultiFieldFilterProxyModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.filters = {}  # ключ: номер колонки, значение: фильтр (строка)
+
+    def set_filters(self, filters: dict):
+        self.filters = filters
+        self.invalidateFilter()
+
+    def clear_filters(self):
+        self.filters = {}
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        for column, pattern in self.filters.items():
+            if not pattern:
+                continue
+            index = model.index(source_row, column, source_parent)
+            data = str(model.data(index)).lower()
+            if pattern.lower() not in data:
+                return False
+        return True

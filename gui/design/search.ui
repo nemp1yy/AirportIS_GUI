@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>374</width>
+    <width>428</width>
     <height>275</height>
    </rect>
   </property>
@@ -39,22 +39,8 @@
      </property>
     </widget>
    </item>
-   <item row="9" column="1" colspan="3">
-    <widget class="QPushButton" name="pushButton_2">
-     <property name="text">
-      <string>Очистить</string>
-     </property>
-    </widget>
-   </item>
    <item row="8" column="3" colspan="2">
     <widget class="QLineEdit" name="lineEdit_aircraft_type"/>
-   </item>
-   <item row="9" column="4">
-    <widget class="QPushButton" name="pushButton_3">
-     <property name="text">
-      <string>Отменить</string>
-     </property>
-    </widget>
    </item>
    <item row="9" column="0">
     <widget class="QPushButton" name="pushButton">
@@ -107,13 +93,6 @@
    <item row="2" column="3" colspan="2">
     <widget class="QLineEdit" name="lineEdit_departure_from"/>
    </item>
-   <item row="3" column="0" colspan="2">
-    <widget class="QLabel" name="label_5">
-     <property name="text">
-      <string>Пункт назначения</string>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="3" colspan="2">
     <widget class="QLineEdit" name="lineEdit_destination"/>
    </item>
@@ -121,13 +100,6 @@
     <widget class="QDateTimeEdit" name="dateTimeEdit_departure_time_range1">
      <property name="calendarPopup">
       <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="2">
-    <widget class="QLabel" name="label_7">
-     <property name="text">
-      <string>Прибытие в</string>
      </property>
     </widget>
    </item>
@@ -181,6 +153,34 @@
    </item>
    <item row="0" column="3" colspan="2">
     <widget class="QLineEdit" name="lineEdit_flight"/>
+   </item>
+   <item row="9" column="5">
+    <widget class="QPushButton" name="pushButton_3">
+     <property name="text">
+      <string>Отменить</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="1" colspan="2">
+    <widget class="QPushButton" name="pushButton_2">
+     <property name="text">
+      <string>Очистить</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Прибытие в</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Пункт назначения</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

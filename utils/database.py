@@ -1,4 +1,4 @@
-from PyQt6.QtSql import QSqlDatabase, QSqlQueryModel, QSqlQuery, QSqlTableModel, QSqlRelationalTableModel, QSqlRelation
+from PyQt6.QtSql import QSqlDatabase, QSqlQueryModel, QSqlQuery, QSqlTableModel, QSqlRelationalTableModel, QSqlRelation, QSqlRelationalDelegate
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import Qt
 import sys
@@ -53,24 +53,24 @@ class DatabaseManager:
 
         # Настройка связей (замените индексы на ваши реальные)
         model.setRelation(2, QSqlRelation("airlines", "id", "name"))
-        model.setRelation(3, QSqlRelation("airports", "id", "name"))
+        model.setRelation(3, QSqlRelation("aircraft_types", "id", "model"))
         model.setRelation(4, QSqlRelation("airports", "id", "name"))
-        model.setRelation(7, QSqlRelation("statuses", "id", "name"))
-        model.setRelation(8, QSqlRelation("aircraft_types", "id", "model"))
-
+        model.setRelation(5, QSqlRelation("airports", "id", "name"))
+        model.setRelation(8, QSqlRelation("statuses", "id", "name"))
         # Заголовки
         model.setHeaderData(1, Qt.Orientation.Horizontal, "Номер рейса")
         model.setHeaderData(2, Qt.Orientation.Horizontal, "Авиакомпания")
-        model.setHeaderData(3, Qt.Orientation.Horizontal, "Откуда")
-        model.setHeaderData(4, Qt.Orientation.Horizontal, "Куда")
-        model.setHeaderData(5, Qt.Orientation.Horizontal, "Время вылета")
-        model.setHeaderData(6, Qt.Orientation.Horizontal, "Время прибытия")
-        model.setHeaderData(7, Qt.Orientation.Horizontal, "Статус")
-        model.setHeaderData(8, Qt.Orientation.Horizontal, "Тип ВС")
+        model.setHeaderData(3, Qt.Orientation.Horizontal, "Тип ВС")
+        model.setHeaderData(4, Qt.Orientation.Horizontal, "Откуда")
+        model.setHeaderData(5, Qt.Orientation.Horizontal, "Куда")
+        model.setHeaderData(6, Qt.Orientation.Horizontal, "Время вылета")
+        model.setHeaderData(7, Qt.Orientation.Horizontal, "Время прибытия")
+        model.setHeaderData(8, Qt.Orientation.Horizontal, "Статус")
         model.setHeaderData(9, Qt.Orientation.Horizontal, "Гейт")
 
         model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnFieldChange)
         model.select()
+
         return model
 
     @staticmethod

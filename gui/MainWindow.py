@@ -1,12 +1,13 @@
 from PyQt6 import uic
 from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtSql import QSqlRelationalDelegate, QSqlQueryModel
+from PyQt6.QtSql import QSqlQuery
 
 from gui.SearchWindow import SearchWindow
 from gui.ReferenceWindow import ReferenceWindow
 from gui.AboutWindow import AboutWindow
-from config.cfg import Config
 from utils.database import DatabaseManager, SQLQueries
-from utils.ui_helpers import TableManager, MessageHelper, FilterHelper, SearchConditionBuilder
+from utils.ui_helpers import MessageHelper, MultiFieldFilterProxyModel
 
 
 class MainWindow(QMainWindow):
@@ -14,52 +15,34 @@ class MainWindow(QMainWindow):
         super().__init__()
         uic.loadUi("gui/design/main.ui", self)
 
-        # Инициализация
-        Config("config.json")
         self.db = DatabaseManager.connect()
 
-        # Создаем реляционную модель
         self.model = DatabaseManager.create_flights_relational_model(self.db)
-        TableManager.setup_table_view(self.tableView, self.model)
 
-        # Подключение сигналов
+        self.proxy_model = MultiFieldFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+
+        self.tableView.setModel(self.proxy_model)
+        self.tableView.setItemDelegate(QSqlRelationalDelegate(self.tableView))
+        self.tableView.setSortingEnabled(True)
+        self.tableView.resizeColumnsToContents()
+        self.tableView.setColumnHidden(0, True)
+
         self._connect_buttons()
-        self._connect_menu_actions()
+        self._connect_menu()
 
-        # Обновляем статусбар при изменении данных
-        self.model.rowsInserted.connect(self._update_status_info)
-        self.model.rowsRemoved.connect(self._update_status_info)
-        self.model.modelReset.connect(self._update_status_info)
 
-        self._update_status_info()
+
+        if hasattr(self, 'statusbar'):
+            self.statusbar.showMessage(f"Всего записей: {self.model.rowCount()}")
 
     def _connect_buttons(self):
-        """Подключение кнопок"""
-        self.add_button.clicked.connect(self._add_new_row)
-        self.delete_button.clicked.connect(self._delete_selected_row)
-        self.search_button.clicked.connect(self._show_search_dialog)
-        self.refresh_button.clicked.connect(self._refresh_table)
+        self.add_button.clicked.connect(self._add_row)
+        self.delete_button.clicked.connect(self._delete_row)
+        self.refresh_button.clicked.connect(self._refresh)
+        self.search_button.clicked.connect(self._show_search)
 
-        # Если есть кнопка сброса фильтров
-        if hasattr(self, 'clear_filters_button'):
-            self.clear_filters_button.clicked.connect(self._clear_filters)
-
-    def _add_new_row(self):
-        """Добавление новой строки"""
-        try:
-            row = self.model.rowCount()
-            if self.model.insertRow(row):
-                # Устанавливаем курсор на новую строку
-                index = self.model.index(row, 1)  # Номер рейса
-                self.tableView.setCurrentIndex(index)
-                self.tableView.edit(index)
-            else:
-                MessageHelper.show_error(self, "Ошибка", "Не удалось добавить новую запись")
-        except Exception as e:
-            MessageHelper.show_error(self, "Ошибка", f"Ошибка при добавлении: {e}")
-
-    def _connect_menu_actions(self):
-        """Подключение действий меню"""
+    def _connect_menu(self):
         menu_actions = {
             self.actionAirlines: "airlines",
             self.actionAircraftTypes: "aircraft_types",
@@ -69,107 +52,69 @@ class MainWindow(QMainWindow):
         for action, table in menu_actions.items():
             action.triggered.connect(lambda checked, t=table: ReferenceWindow(t, self).exec())
 
-    def _delete_selected_row(self):
-        """Удаление выбранной строки"""
-        row = self.tableView.currentIndex().row()
-        if row < 0:
-            MessageHelper.show_error(self, "Ошибка", "Не выбрана запись для удаления")
+    def _add_row(self):
+        row = self.model.rowCount()
+        if self.model.insertRow(row):
+            self.tableView.selectRow(row)
+            self.tableView.edit(self.model.index(row, 1))
+        else:
+            MessageHelper.show_error(self, "Ошибка", "Не удалось добавить строку")
+
+    def _delete_row(self):
+        index = self.tableView.currentIndex()
+        if not index.isValid():
+            MessageHelper.show_error(self, "Ошибка", "Не выбрана строка")
             return
+        self.model.removeRow(index.row())
+        self.model.submitAll()
 
-        try:
-            if self.model.removeRow(row):
-                self.model.submitAll()
-                if self.model.lastError().isValid():
-                    MessageHelper.show_error(self, "Ошибка", f"Ошибка удаления: {self.model.lastError().text()}")
-                    self.model.revertAll()
-                else:
-                    # Обновляем модель после успешного удаления
-                    self.model.select()
-            else:
-                MessageHelper.show_error(self, "Ошибка", "Не удалось удалить запись")
-        except Exception as e:
-            MessageHelper.show_error(self, "Ошибка", f"Ошибка при удалении: {e}")
+    def _refresh(self):
+        self.model.setFilter("")
+        if hasattr(self, 'statusbar'):
+            self.statusbar.showMessage(f"Обновлено. Всего записей: {self.model.rowCount()}")
 
-    def _show_search_dialog(self):
+    def _show_search(self):
         dialog = SearchWindow(self)
-        dialog.search_requested.connect(self._apply_filter)
+        dialog.search_requested.connect(self._apply_search_query)
+        dialog.reset_requested.connect(self._reset_search_results)  # ← новое подключение
         dialog.exec()
 
-    def _apply_filters(self, filter_params):
-        try:
-            filter_string = SearchConditionBuilder.build_filter_string(filter_params)
+    def _apply_search_query(self, query_text, params):
+        column_map = {
+            'flight': 1,
+            'airline': 2,
+            'aircraft_type': 3,
+            'departure_from': 4,
+            'destination': 5,
+            'departure_time': 6,
+            'arrival_time': 7,
+            'status': 8,
+            'gate': 9
+        }
 
-            if filter_string:
-                # Применяем фильтр к модели
-                self.model.setFilter(filter_string)
-            else:
-                # Убираем фильтр, если условий нет
-                self.model.setFilter("")
+        # Сопоставим по названиям фильтров
+        filter_dict = {}
+        for i, key in enumerate(column_map.keys()):
+            value = params[i] if i < len(params) else None
+            if value and value != "Все статусы":
+                filter_dict[column_map[key]] = str(value)
 
-            # Обновляем модель
-            self.model.select()
-
-        except Exception as e:
-            MessageHelper.show_error(self, "Ошибка", f"Ошибка применения фильтра: {e}")
-
-    def _clear_filters(self):
-        """Сброс всех фильтров"""
-        self.model.clear_filters()
-        self._update_status_info()
+        self.proxy_model.set_filters(filter_dict)
 
         if hasattr(self, 'statusbar'):
-            self.statusbar.showMessage("Фильтры сброшены")
+            self.statusbar.showMessage(f"Найдено записей: {self.proxy_model.rowCount()}")
 
-    def _refresh_table(self):
-        self.model.setFilter("")
+        self.tableView.setModel(self.model)
+        if hasattr(self, 'statusbar'):
+            self.statusbar.showMessage(f"Результатов: {self.model.rowCount()}")
+
+        print("Фильтры:", filter_dict)
+
+    def _reset_search_results(self):
+        self.tableView.setModel(self.model)
+        self.tableView.setItemDelegate(QSqlRelationalDelegate(self.tableView))
         self.model.select()
+        self.tableView.resizeColumnsToContents()
 
-    def _update_status_info(self):
-        """Обновление информации в статусбаре"""
         if hasattr(self, 'statusbar'):
-            filtered_count = self.model.get_filtered_count()
-            total_count = self.source_model.rowCount()
-
-            if filtered_count == total_count:
-                status_text = f"Всего записей: {total_count}"
-            else:
-                active_filters = len([v for v in self.model.filters.values() if v])
-                status_text = f"Показано: {filtered_count} из {total_count} | Активных фильтров: {active_filters}"
-
-            self.statusbar.showMessage(status_text)
-
-    # Дополнительные методы для удобства работы с фильтрами
-
-    def get_selected_row_data(self):
-        """Получение данных выбранной строки"""
-        proxy_index = self.tableView.currentIndex()
-        if not proxy_index.isValid():
-            return None
-
-        source_index = self.model.mapToSource(proxy_index)
-        if not source_index.isValid():
-            return None
-
-        row_data = {}
-        for col in range(self.source_model.columnCount()):
-            header = self.source_model.headerData(col, 1)  # Qt.Orientation.Horizontal = 1
-            value = self.source_model.data(self.source_model.index(source_index.row(), col))
-            row_data[str(header)] = value
-
-        return row_data
-
-    def set_quick_filter(self, field_name, value):
-        """Быстрая установка фильтра (можно использовать для контекстного меню)"""
-        current_filters = self.model.filters.copy()
-        current_filters[field_name] = value
-        self.model.set_filters(current_filters)
-        self._update_status_info()
-
-    def export_filtered_data(self):
-        """Экспорт отфильтрованных данных (заглушка для будущей реализации)"""
-        filtered_count = self.model.get_filtered_count()
-        MessageHelper.show_info(
-            self,
-            "Экспорт",
-            f"Будет экспортировано {filtered_count} записей"
-        )
+            self.statusbar.showMessage(f"Всего записей: {self.model.rowCount()}")

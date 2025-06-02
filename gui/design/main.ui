@@ -27,6 +27,9 @@
       <height>301</height>
      </rect>
     </property>
+    <property name="editTriggers">
+     <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+    </property>
    </widget>
    <widget class="QPushButton" name="add_button">
     <property name="geometry">
@@ -168,14 +171,11 @@
       <property name="title">
        <string>SQLite</string>
       </property>
-      <addaction name="action_2"/>
-      <addaction name="action_3"/>
      </widget>
      <widget class="QMenu" name="menuMariaDB">
       <property name="title">
        <string>MariaDB</string>
       </property>
-      <addaction name="action_4"/>
      </widget>
      <addaction name="separator"/>
      <addaction name="menuSQLite"/>
