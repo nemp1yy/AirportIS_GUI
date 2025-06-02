@@ -1,96 +1,102 @@
 from PyQt6 import uic, QtCore
 from PyQt6.QtWidgets import QDialog
-from utils.database import DatabaseManager, SQLQueries
-from utils.ui_helpers import FormUtils, SearchConditionBuilder, MessageHelper
+from utils.ui_helpers import FormUtils, MessageHelper
 
 
 class SearchWindow(QDialog):
-    search_requested = QtCore.pyqtSignal(str, list)
+    """Окно поиска с фильтрацией через FlightFilterProxyModel"""
+
+    filter_requested = QtCore.pyqtSignal(dict)  # Сигнал для применения фильтров
+    filters_cleared = QtCore.pyqtSignal()  # Сигнал для сброса фильтров
 
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi("gui/design/search.ui", self)
 
         # Инициализация
-        self.db = DatabaseManager.connect()
         FormUtils.reset_datetime_edits(self)
 
         # Подключение кнопок
-        self.pushButton.clicked.connect(self._emit_search)
-        self.pushButton_2.clicked.connect(self._clear_form)
-        self.pushButton_3.clicked.connect(self.close)
+        self.pushButton.clicked.connect(self._apply_filter)  # Поиск
+        self.pushButton_2.clicked.connect(self._clear_form)  # Очистить форму
+        self.pushButton_3.clicked.connect(self.close)  # Закрыть
 
-    def _emit_search(self):
-        """Формирование и отправка поискового запроса"""
-        params = self._get_form_data()
-        conditions, query_params = self._build_search_conditions(params)
+        # Если есть дополнительная кнопка для сброса фильтров
+        if hasattr(self, 'pushButton_reset_filters'):
+            self.pushButton_reset_filters.clicked.connect(self._reset_filters)
 
-        sql = SQLQueries.search_query()
-        if conditions:
-            sql += " AND " + " AND ".join(conditions)
+    def _apply_filter(self):
+        """Применение фильтров к таблице"""
+        filters = self._collect_filters()
 
-        self.search_requested.emit(sql, query_params)
+        if not filters:
+            MessageHelper.show_info(self, "Поиск", "Заполните хотя бы одно поле для поиска")
+            return
+
+        self.filter_requested.emit(filters)
         self.close()
 
-    def _get_form_data(self):
-        """Получение данных из формы"""
-        return {
-            'flight': self.lineEdit_flight.text().strip(),
-            'airline': self.lineEdit_airline.text().strip(),
-            'departure_from': self.lineEdit_departure_from.text().strip(),
-            'destination': self.lineEdit_destination.text().strip(),
-            'gate': self.lineEdit_gate.text().strip(),
-            'status': self.comboBox_status.currentText(),
-            'aircraft_type': self.lineEdit_aircraft_type.text().strip(),
-            'departure_range': (
-                self.dateTimeEdit_departure_time_range1.dateTime().toString("yyyy-MM-dd hh:mm"),
-                self.dateTimeEdit_departure_time_range2.dateTime().toString("yyyy-MM-dd hh:mm")
-            ),
-            'arrival_range': (
-                self.dateTimeEdit_arrival_time_range1.dateTime().toString("yyyy-MM-dd hh:mm"),
-                self.dateTimeEdit_arrival_time_range2.dateTime().toString("yyyy-MM-dd hh:mm")
-            )
-        }
+    def _collect_filters(self):
+        """Сбор всех фильтров из формы"""
+        filters = {}
 
-    def _build_search_conditions(self, params):
-        """Построение условий поиска"""
-        conditions = []
-        query_params = []
-        builder = SearchConditionBuilder
+        # Простые текстовые поля
+        text_fields = ['flight', 'airline', 'departure_from', 'destination', 'gate', 'aircraft_type']
+        text_values = FormUtils.get_line_edit_values(self, text_fields)
 
-        # Простые поля
-        simple_fields = [
-            (params['flight'], "f.flight_number"),
-            (params['airline'], "al.name"),
-            (params['gate'], "f.gate"),
-            (params['aircraft_type'], "ac.model")
-        ]
-
-        for value, field in simple_fields:
-            builder.add_like_condition(conditions, query_params, value, field)
-
-        # Аэропорты (множественный поиск)
-        airport_fields = ["dap.name", "dap.city", "dap.code"]
-        builder.add_multi_like_condition(conditions, query_params, params['departure_from'], airport_fields)
-
-        arrival_fields = ["aap.name", "aap.city", "aap.code"]
-        builder.add_multi_like_condition(conditions, query_params, params['destination'], arrival_fields)
-
-        # Временные диапазоны
-        builder.add_time_range_condition(conditions, query_params,
-                                         *params['departure_range'], "f.departure_time")
-        builder.add_time_range_condition(conditions, query_params,
-                                         *params['arrival_range'], "f.arrival_time")
+        # Добавляем только непустые значения
+        for field, value in text_values.items():
+            if value:
+                filters[field] = value
 
         # Статус
-        if params['status'] != "Все статусы":
-            conditions.append("st.name = ?")
-            query_params.append(params['status'])
+        status = self.comboBox_status.currentText()
+        if status and status != "Все статусы":
+            filters['status'] = status
 
-        return conditions, query_params
+        # Временные диапазоны
+        departure_range = FormUtils.get_datetime_range(
+            self.dateTimeEdit_departure_time_range1,
+            self.dateTimeEdit_departure_time_range2
+        )
+        if departure_range:
+            filters['departure_range'] = departure_range
+
+        arrival_range = FormUtils.get_datetime_range(
+            self.dateTimeEdit_arrival_time_range1,
+            self.dateTimeEdit_arrival_time_range2
+        )
+        if arrival_range:
+            filters['arrival_range'] = arrival_range
+
+        return filters
 
     def _clear_form(self):
-        """Очистка формы"""
+        """Очистка формы поиска"""
         FormUtils.clear_line_edits(self)
         FormUtils.reset_datetime_edits(self)
         FormUtils.reset_combo_boxes(self)
+
+    def _reset_filters(self):
+        """Сброс всех фильтров в таблице"""
+        self.filters_cleared.emit()
+        self.close()
+
+    def set_initial_values(self, **kwargs):
+        """Установка начальных значений в форму
+
+        Args:
+            **kwargs: Пары field_name=value для установки в форму
+        """
+        for field_name, value in kwargs.items():
+            # Для текстовых полей
+            line_edit = self.findChild(self.__class__, f"lineEdit_{field_name}")
+            if line_edit and hasattr(line_edit, 'setText'):
+                line_edit.setText(str(value))
+
+            # Для combobox
+            if field_name == 'status':
+                combo = self.comboBox_status
+                index = combo.findText(str(value))
+                if index >= 0:
+                    combo.setCurrentIndex(index)

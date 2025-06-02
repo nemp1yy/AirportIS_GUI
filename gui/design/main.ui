@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>933</width>
-    <height>406</height>
+    <width>922</width>
+    <height>396</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,7 +54,7 @@
    <widget class="QPushButton" name="search_button">
     <property name="geometry">
      <rect>
-      <x>240</x>
+      <x>820</x>
       <y>0</y>
       <width>71</width>
       <height>31</height>
@@ -102,7 +102,7 @@
      <rect>
       <x>0</x>
       <y>30</y>
-      <width>841</width>
+      <width>921</width>
       <height>20</height>
      </rect>
     </property>
@@ -115,7 +115,7 @@
      <rect>
       <x>0</x>
       <y>330</y>
-      <width>841</width>
+      <width>921</width>
       <height>20</height>
      </rect>
     </property>
@@ -126,7 +126,7 @@
    <widget class="QPushButton" name="refresh_button">
     <property name="geometry">
      <rect>
-      <x>800</x>
+      <x>890</x>
       <y>0</y>
       <width>31</width>
       <height>31</height>
@@ -141,8 +141,8 @@
     </property>
     <property name="iconSize">
      <size>
-      <width>32</width>
-      <height>32</height>
+      <width>16</width>
+      <height>16</height>
      </size>
     </property>
    </widget>
@@ -152,7 +152,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>933</width>
+     <width>922</width>
      <height>21</height>
     </rect>
    </property>
@@ -162,11 +162,24 @@
     </property>
     <widget class="QMenu" name="menu_2">
      <property name="title">
-      <string>Выбор базы данных</string>
+      <string>Тип база данных</string>
      </property>
+     <widget class="QMenu" name="menuSQLite">
+      <property name="title">
+       <string>SQLite</string>
+      </property>
+      <addaction name="action_2"/>
+      <addaction name="action_3"/>
+     </widget>
+     <widget class="QMenu" name="menuMariaDB">
+      <property name="title">
+       <string>MariaDB</string>
+      </property>
+      <addaction name="action_4"/>
+     </widget>
      <addaction name="separator"/>
-     <addaction name="actionSQLite"/>
-     <addaction name="actionMySQL_MariaDB"/>
+     <addaction name="menuSQLite"/>
+     <addaction name="menuMariaDB"/>
     </widget>
     <addaction name="separator"/>
     <addaction name="menu_2"/>
@@ -191,16 +204,6 @@
    <addaction name="menu_4"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionSQLite">
-   <property name="text">
-    <string>SQLite</string>
-   </property>
-  </action>
-  <action name="actionMySQL_MariaDB">
-   <property name="text">
-    <string>MariaDB</string>
-   </property>
-  </action>
   <action name="action">
    <property name="text">
     <string>О программе...</string>
@@ -234,6 +237,21 @@
   <action name="actionAbout">
    <property name="text">
     <string>О программе</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>Открыть...</string>
+   </property>
+  </action>
+  <action name="action_3">
+   <property name="text">
+    <string>Открыть локальный</string>
+   </property>
+  </action>
+  <action name="action_4">
+   <property name="text">
+    <string>Подключится</string>
    </property>
   </action>
  </widget>

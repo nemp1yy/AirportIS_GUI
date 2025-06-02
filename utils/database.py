@@ -51,12 +51,6 @@ class DatabaseManager:
         model = QSqlRelationalTableModel(db=db)
         model.setTable("flights")
 
-        # Настраиваем связи с другими таблицами
-        # Предполагаем следующую структуру столбцов в таблице flights:
-        # 0: id, 1: flight_number, 2: airline_id, 3: aircraft_type_id,
-        # 4: departure_airport_id, 5: arrival_airport_id,
-        # 6: departure_time, 7: arrival_time, 8: status_id, 9: gate
-
         model.setRelation(2, QSqlRelation("airlines", "id", "name"))
         model.setRelation(3, QSqlRelation("aircraft_types", "id", "model"))
         model.setRelation(4, QSqlRelation("airports", "id", "city"))
@@ -74,6 +68,8 @@ class DatabaseManager:
         model.setHeaderData(7, Qt.Orientation.Horizontal, "Время прилета")
         model.setHeaderData(8, Qt.Orientation.Horizontal, "Статус")
         model.setHeaderData(9, Qt.Orientation.Horizontal, "Гейт")
+
+        model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnFieldChange)
 
         model.select()
         return model

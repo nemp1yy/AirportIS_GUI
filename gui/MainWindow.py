@@ -6,7 +6,7 @@ from gui.ReferenceWindow import ReferenceWindow
 from gui.AboutWindow import AboutWindow
 from config.cfg import Config
 from utils.database import DatabaseManager, SQLQueries
-from utils.ui_helpers import TableManager, MessageHelper
+from utils.ui_helpers import TableManager, MessageHelper, FilterHelper
 
 
 class MainWindow(QMainWindow):
@@ -18,13 +18,28 @@ class MainWindow(QMainWindow):
         Config("config.json")
         self.db = DatabaseManager.connect()
 
-        # Используем новый метод для создания реляционной модели
-        self.model = DatabaseManager.create_flights_relational_model(self.db)
-        TableManager.setup_table_view(self.tableView, self.model)
+        # Создаем основную модель данных
+        self.source_model = DatabaseManager.create_flights_relational_model(self.db)
+
+        # Создаем модель фильтрации
+        self.filter_model = FilterHelper.create_flight_filter_model(
+            self.source_model,
+            parent=self
+        )
+
+        # Настраиваем таблицу с фильтрацией
+        TableManager.setup_table_view(self.tableView, self.filter_model)
 
         # Подключение сигналов
         self._connect_buttons()
         self._connect_menu_actions()
+
+        # Обновляем статусбар при изменении данных
+        self.filter_model.rowsInserted.connect(self._update_status_info)
+        self.filter_model.rowsRemoved.connect(self._update_status_info)
+        self.filter_model.modelReset.connect(self._update_status_info)
+
+        self._update_status_info()
 
     def _connect_buttons(self):
         """Подключение кнопок"""
@@ -33,13 +48,17 @@ class MainWindow(QMainWindow):
         self.search_button.clicked.connect(self._show_search_dialog)
         self.refresh_button.clicked.connect(self._refresh_table)
 
+        # Если есть кнопка сброса фильтров
+        if hasattr(self, 'clear_filters_button'):
+            self.clear_filters_button.clicked.connect(self._clear_filters)
+
     def _add_new_row(self):
         """Добавление новой строки"""
         try:
             row = self.model.rowCount()
             if self.model.insertRow(row):
-                # Устанавливаем курсор на новую строку (номер рейса)
-                index = self.model.index(row, 1)
+                # Устанавливаем курсор на новую строку
+                index = self.model.index(row, 1)  # Номер рейса
                 self.tableView.setCurrentIndex(index)
                 self.tableView.edit(index)
             else:
@@ -58,8 +77,6 @@ class MainWindow(QMainWindow):
         for action, table in menu_actions.items():
             action.triggered.connect(lambda checked, t=table: ReferenceWindow(t, self).exec())
 
-
-
     def _delete_selected_row(self):
         """Удаление выбранной строки"""
         row = self.tableView.currentIndex().row()
@@ -73,6 +90,9 @@ class MainWindow(QMainWindow):
                 if self.model.lastError().isValid():
                     MessageHelper.show_error(self, "Ошибка", f"Ошибка удаления: {self.model.lastError().text()}")
                     self.model.revertAll()
+                else:
+                    # Обновляем модель после успешного удаления
+                    self.model.select()
             else:
                 MessageHelper.show_error(self, "Ошибка", "Не удалось удалить запись")
         except Exception as e:
@@ -81,20 +101,87 @@ class MainWindow(QMainWindow):
     def _show_search_dialog(self):
         """Показ диалога поиска"""
         dialog = SearchWindow(self)
-        dialog.search_requested.connect(self._apply_search)
+
+        # Подключаем новые сигналы
+        dialog.filter_requested.connect(self._apply_filters)
+        dialog.filters_cleared.connect(self._clear_filters)
+
         dialog.exec()
 
-    def _apply_search(self, sql, params):
-        """Применение результатов поиска"""
-        # Для поиска используем исходный подход с JOIN
-        search_model = DatabaseManager.create_query_model(self.db, sql, params)
-        if search_model.lastError().isValid():
-            MessageHelper.show_error(self, "Ошибка", f"Поиск не выполнен: {search_model.lastError().text()}")
-            return
-        TableManager.setup_table_view(self.tableView, search_model)
+    def _apply_filters(self, filters):
+        """Применение фильтров к таблице"""
+        self.filter_model.set_filters(filters)
+        self._update_status_info()
+
+        # Показываем информацию о применении фильтров
+        filter_count = len([v for v in filters.values() if v])
+        filtered_rows = self.filter_model.get_filtered_count()
+        total_rows = self.source_model.rowCount()
+
+        if hasattr(self, 'statusbar'):
+            self.statusbar.showMessage(
+                f"Применено фильтров: {filter_count} | "
+                f"Показано: {filtered_rows} из {total_rows} записей"
+            )
+
+    def _clear_filters(self):
+        """Сброс всех фильтров"""
+        self.filter_model.clear_filters()
+        self._update_status_info()
+
+        if hasattr(self, 'statusbar'):
+            self.statusbar.showMessage("Фильтры сброшены")
 
     def _refresh_table(self):
-        """Обновление таблицы"""
-        # Возвращаемся к основной редактируемой модели
         self.model = DatabaseManager.create_flights_relational_model(self.db)
         TableManager.setup_table_view(self.tableView, self.model)
+
+    def _update_status_info(self):
+        """Обновление информации в статусбаре"""
+        if hasattr(self, 'statusbar'):
+            filtered_count = self.filter_model.get_filtered_count()
+            total_count = self.source_model.rowCount()
+
+            if filtered_count == total_count:
+                status_text = f"Всего записей: {total_count}"
+            else:
+                active_filters = len([v for v in self.filter_model.filters.values() if v])
+                status_text = f"Показано: {filtered_count} из {total_count} | Активных фильтров: {active_filters}"
+
+            self.statusbar.showMessage(status_text)
+
+    # Дополнительные методы для удобства работы с фильтрами
+
+    def get_selected_row_data(self):
+        """Получение данных выбранной строки"""
+        proxy_index = self.tableView.currentIndex()
+        if not proxy_index.isValid():
+            return None
+
+        source_index = self.filter_model.mapToSource(proxy_index)
+        if not source_index.isValid():
+            return None
+
+        row_data = {}
+        for col in range(self.source_model.columnCount()):
+            header = self.source_model.headerData(col, 1)  # Qt.Orientation.Horizontal = 1
+            value = self.source_model.data(self.source_model.index(source_index.row(), col))
+            row_data[str(header)] = value
+
+        return row_data
+
+    def set_quick_filter(self, field_name, value):
+        """Быстрая установка фильтра (можно использовать для контекстного меню)"""
+        current_filters = self.filter_model.filters.copy()
+        current_filters[field_name] = value
+        self.filter_model.set_filters(current_filters)
+        self._update_status_info()
+
+    def export_filtered_data(self):
+        """Экспорт отфильтрованных данных (заглушка для будущей реализации)"""
+        filtered_count = self.filter_model.get_filtered_count()
+        MessageHelper.show_info(
+            self,
+            "Экспорт",
+            f"Будет экспортировано {filtered_count} записей"
+        )

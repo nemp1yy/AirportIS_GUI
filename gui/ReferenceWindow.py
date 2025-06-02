@@ -27,7 +27,7 @@ class ReferenceWindow(QDialog):
 
     def _delete_selected(self):
         """Удаление выбранной строки"""
-        index = self.tableView.currentIndex()   Aw!vx;
+        index = self.tableView.currentIndex()
         if index.isValid():
             self.model.removeRow(index.row())
 
