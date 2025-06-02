@@ -8,12 +8,11 @@ from datetime import datetime
 class TableManager:
     @staticmethod
     def setup_table_view(table_view, model):
-        """Настройка представления таблицы с поддержкой выпадающих списков"""
+        """Настройка представления таблицы"""
         table_view.setModel(model)
 
-        # Если это реляционная модель - устанавливаем специальный делегат
+        # Устанавливаем делегат для выпадающих списков
         if isinstance(model, QSqlRelationalTableModel):
-            # Создаем делегат для выпадающих списков
             delegate = QSqlRelationalDelegate(table_view)
             table_view.setItemDelegate(delegate)
 
@@ -23,7 +22,7 @@ class TableManager:
         table_view.setSelectionBehavior(table_view.SelectionBehavior.SelectRows)
         table_view.setSelectionMode(table_view.SelectionMode.SingleSelection)
 
-        # Скрываем ID столбец (опционально)
+        # Скрываем ID столбец
         if model.columnCount() > 0:
             table_view.setColumnHidden(0, True)
 
@@ -257,6 +256,49 @@ class SearchConditionBuilder:
             conditions.append(f"{field} <= ?")
             params.append(end_time)
 
+    @staticmethod
+    def build_filter_string(params):
+        """Построение строки фильтра для QSqlRelationalTableModel"""
+        conditions = []
+
+        # Простые поля (прямое сравнение по столбцам основной таблицы)
+        if params.get('flight'):
+            conditions.append(f"flights.flight_number LIKE '%{params['flight']}%'")
+
+        if params.get('gate'):
+            conditions.append(f"flights.gate LIKE '%{params['gate']}%'")
+
+        # Связанные таблицы - используем JOIN в фильтре
+        if params.get('airline'):
+            conditions.append(f"airlines.name LIKE '%{params['airline']}%'")
+
+        if params.get('departure_from'):
+            conditions.append(f"(departure_airports.name LIKE '%{params['departure_from']}%' OR "
+                              f"departure_airports.city LIKE '%{params['departure_from']}%' OR "
+                              f"departure_airports.code LIKE '%{params['departure_from']}%')")
+
+        if params.get('destination'):
+            conditions.append(f"(arrival_airports.name LIKE '%{params['destination']}%' OR "
+                              f"arrival_airports.city LIKE '%{params['destination']}%' OR "
+                              f"arrival_airports.code LIKE '%{params['destination']}%')")
+
+        if params.get('aircraft_type'):
+            conditions.append(f"aircraft_types.model LIKE '%{params['aircraft_type']}%'")
+
+        if params.get('status') and params['status'] != "Все статусы":
+            conditions.append(f"statuses.name = '{params['status']}'")
+
+        # Временные диапазоны
+        if params.get('departure_range'):
+            start, end = params['departure_range']
+            conditions.append(f"flights.departure_time BETWEEN '{start}' AND '{end}'")
+
+        if params.get('arrival_range'):
+            start, end = params['arrival_range']
+            conditions.append(f"flights.arrival_time BETWEEN '{start}' AND '{end}'")
+
+        return " AND ".join(conditions) if conditions else ""
+
 
 class FilterHelper:
     """Помощник для работы с фильтрами таблиц"""
@@ -275,8 +317,6 @@ class FilterHelper:
         filter_model = FlightFilterProxyModel(parent)
         filter_model.setSourceModel(source_model)
 
-        # Стандартное соответствие колонок для рейсов
-        # Адаптируйте под вашу структуру данных
         default_mapping = {
             'flight': 1,  # Номер рейса
             'airline': 2,  # Авиакомпания

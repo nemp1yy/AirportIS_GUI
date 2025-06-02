@@ -47,30 +47,29 @@ class DatabaseManager:
 
     @staticmethod
     def create_flights_relational_model(db):
-        """Создание реляционной модели для таблицы flights"""
+        """Создание реляционной модели с поддержкой фильтрации"""
         model = QSqlRelationalTableModel(db=db)
         model.setTable("flights")
 
+        # Настройка связей (замените индексы на ваши реальные)
         model.setRelation(2, QSqlRelation("airlines", "id", "name"))
-        model.setRelation(3, QSqlRelation("aircraft_types", "id", "model"))
-        model.setRelation(4, QSqlRelation("airports", "id", "city"))
-        model.setRelation(5, QSqlRelation("airports", "id", "city"))
-        model.setRelation(8, QSqlRelation("statuses", "id", "name"))
+        model.setRelation(3, QSqlRelation("airports", "id", "name"))
+        model.setRelation(4, QSqlRelation("airports", "id", "name"))
+        model.setRelation(7, QSqlRelation("statuses", "id", "name"))
+        model.setRelation(8, QSqlRelation("aircraft_types", "id", "model"))
 
-        # Настраиваем заголовки
-        model.setHeaderData(0, Qt.Orientation.Horizontal, "ID")
+        # Заголовки
         model.setHeaderData(1, Qt.Orientation.Horizontal, "Номер рейса")
         model.setHeaderData(2, Qt.Orientation.Horizontal, "Авиакомпания")
-        model.setHeaderData(3, Qt.Orientation.Horizontal, "Тип самолета")
-        model.setHeaderData(4, Qt.Orientation.Horizontal, "Вылет из")
-        model.setHeaderData(5, Qt.Orientation.Horizontal, "Прилет в")
-        model.setHeaderData(6, Qt.Orientation.Horizontal, "Время вылета")
-        model.setHeaderData(7, Qt.Orientation.Horizontal, "Время прилета")
-        model.setHeaderData(8, Qt.Orientation.Horizontal, "Статус")
+        model.setHeaderData(3, Qt.Orientation.Horizontal, "Откуда")
+        model.setHeaderData(4, Qt.Orientation.Horizontal, "Куда")
+        model.setHeaderData(5, Qt.Orientation.Horizontal, "Время вылета")
+        model.setHeaderData(6, Qt.Orientation.Horizontal, "Время прибытия")
+        model.setHeaderData(7, Qt.Orientation.Horizontal, "Статус")
+        model.setHeaderData(8, Qt.Orientation.Horizontal, "Тип ВС")
         model.setHeaderData(9, Qt.Orientation.Horizontal, "Гейт")
 
         model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnFieldChange)
-
         model.select()
         return model
 
