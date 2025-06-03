@@ -68,7 +68,7 @@ class DatabaseManager:
         model.setHeaderData(8, Qt.Orientation.Horizontal, "Статус")
         model.setHeaderData(9, Qt.Orientation.Horizontal, "Гейт")
 
-        model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnFieldChange)
+        model.setEditStrategy(QSqlRelationalTableModel.EditStrategy.OnManualSubmit)
         model.select()
 
         return model

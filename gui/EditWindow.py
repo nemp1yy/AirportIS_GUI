@@ -22,7 +22,7 @@ class EditWindow(QDialog):
         self._fill_combo(self.comboBox_arrival, "airports", "id", "name")
         self._fill_combo(self.comboBox_status, "statuses", "id", "name")
 
-        self.save_button.clicked.connect(self.accept)
+        self.save_button.clicked.connect(self._save_and_close)
         self.cancel_button.clicked.connect(self.reject)
 
         FormUtils.reset_datetime_edits(self)
@@ -44,8 +44,8 @@ class EditWindow(QDialog):
 
         self._set_combo_by_data(self.comboBox_airline, record.value("airline_id"))
         self._set_combo_by_data(self.comboBox_aircraft_type, record.value("aircraft_type_id"))
-        self._set_combo_by_data(self.comboBox_departure, record.value("departure_id"))
-        self._set_combo_by_data(self.comboBox_arrival, record.value("arrival_id"))
+        self._set_combo_by_data(self.comboBox_departure, record.value("departure_airport_id"))
+        self._set_combo_by_data(self.comboBox_arrival, record.value("arrival_airport_id"))
         self._set_combo_by_data(self.comboBox_status, record.value("status_id"))
 
         # Исправлена ошибка: было "departure_time" в обоих случаях
@@ -54,9 +54,9 @@ class EditWindow(QDialog):
 
         if departure_time:
             self.dateTimeEdit_departure_time.setDateTime(
-                QDateTime.fromString(str(departure_time), "yyyy-MM-dd HH:mm:ss"))
+                QDateTime.fromString(str(departure_time), "yyyy-MM-dd HH:mm"))
         if arrival_time:
-            self.dateTimeEdit_arrival_time.setDateTime(QDateTime.fromString(str(arrival_time), "yyyy-MM-dd HH:mm:ss"))
+            self.dateTimeEdit_arrival_time.setDateTime(QDateTime.fromString(str(arrival_time), "yyyy-MM-dd HH:mm"))
 
     def _set_combo_by_data(self, combo, value):
         """Устанавливает значение в комбобоксе по данным"""
@@ -87,8 +87,8 @@ class EditWindow(QDialog):
             record.setValue("arrival_id", self.comboBox_arrival.currentData())  # Добавлено
             record.setValue("status_id", self.comboBox_status.currentData())
             record.setValue("departure_time",
-                            self.dateTimeEdit_departure_time.dateTime().toString("yyyy-MM-dd HH:mm:ss"))
-            record.setValue("arrival_time", self.dateTimeEdit_arrival_time.dateTime().toString("yyyy-MM-dd HH:mm:ss"))
+                            self.dateTimeEdit_departure_time.dateTime().toString("yyyy-MM-dd HH:mm"))
+            record.setValue("arrival_time", self.dateTimeEdit_arrival_time.dateTime().toString("yyyy-MM-dd HH:mm"))
 
             # Применяем запись к модели
             if not self.model.setRecord(self.row, record):
@@ -107,3 +107,7 @@ class EditWindow(QDialog):
         except Exception as e:
             MessageHelper.show_error(self, "Ошибка", f"Произошла ошибка: {str(e)}")
             return False
+
+    def _save_and_close(self):
+        if self.apply_changes():
+            self.accept()
