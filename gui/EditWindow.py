@@ -6,6 +6,7 @@ from PyQt6.QtSql import QSqlQuery
 from utils.ui_helpers import TableManager, MessageHelper, FormUtils
 from utils.database import DatabaseManager
 
+
 class EditWindow(QDialog):
     def __init__(self, model, row=None, parent=None):
         super().__init__(parent)
@@ -30,6 +31,7 @@ class EditWindow(QDialog):
             self._load_data()
 
     def _fill_combo(self, combo, table, id_col, name_col):
+        combo.clear()  # Очищаем комбобокс перед заполнением
         query = QSqlQuery(self.db)
         query.exec(f"SELECT {id_col}, {name_col} FROM {table}")
         while query.next():
@@ -46,30 +48,62 @@ class EditWindow(QDialog):
         self._set_combo_by_data(self.comboBox_arrival, record.value("arrival_id"))
         self._set_combo_by_data(self.comboBox_status, record.value("status_id"))
 
-        self.dateTimeEdit_departure_time.setDateTime(QDateTime.fromString(record.value("departure_time"), "yyyy-MM-dd HH:mm:ss"))
-        self.dateTimeEdit_arrival_time.setDateTime(QDateTime.fromString(record.value("departure_time"), "yyyy-MM-dd HH:mm:ss"))
+        # Исправлена ошибка: было "departure_time" в обоих случаях
+        departure_time = record.value("departure_time")
+        arrival_time = record.value("arrival_time")
 
-        def _set_combo_by_data(self, combo, value):
+        if departure_time:
+            self.dateTimeEdit_departure_time.setDateTime(
+                QDateTime.fromString(str(departure_time), "yyyy-MM-dd HH:mm:ss"))
+        if arrival_time:
+            self.dateTimeEdit_arrival_time.setDateTime(QDateTime.fromString(str(arrival_time), "yyyy-MM-dd HH:mm:ss"))
+
+    def _set_combo_by_data(self, combo, value):
+        """Устанавливает значение в комбобоксе по данным"""
+        if value is not None:
             index = combo.findData(value)
             if index >= 0:
                 combo.setCurrentIndex(index)
 
-        def apply_changet(self):
+    def apply_changes(self):
+        """Применяет изменения к модели"""
+        try:
             if self.row is None:
-                self.model.insertRow(self.model.rowCount())
+                # Добавление новой записи
+                if not self.model.insertRow(self.model.rowCount()):
+                    MessageHelper.show_error(self, "Ошибка", "Не удалось добавить новую строку")
+                    return False
                 self.row = self.model.rowCount() - 1
 
             record = self.model.record(self.row)
+
+            # Устанавливаем значения полей
             record.setValue("flight_number", self.lineEdit_flight.text())
             record.setValue("gate", self.lineEdit_gate.text())
             record.setValue("airline_id", self.comboBox_airline.currentData())
-            record.setValue("airline_type_id", self.comboBox_aircraft_type.currentData())
+            record.setValue("aircraft_type_id",
+                            self.comboBox_aircraft_type.currentData())  # Исправлено с airline_type_id
+            record.setValue("departure_id", self.comboBox_departure.currentData())  # Добавлено
+            record.setValue("arrival_id", self.comboBox_arrival.currentData())  # Добавлено
             record.setValue("status_id", self.comboBox_status.currentData())
-            record.setValue("departure_time", self.dateTimeEdit_departure_time.dateTime().toString("yyyy-MM-dd HH:mm:ss"))
+            record.setValue("departure_time",
+                            self.dateTimeEdit_departure_time.dateTime().toString("yyyy-MM-dd HH:mm:ss"))
             record.setValue("arrival_time", self.dateTimeEdit_arrival_time.dateTime().toString("yyyy-MM-dd HH:mm:ss"))
 
-            self.model.setRecord(self.row, record)
-            self.model.submitAll()
+            # Применяем запись к модели
+            if not self.model.setRecord(self.row, record):
+                MessageHelper.show_error(self, "Ошибка",
+                                         f"Не удалось установить запись: {self.model.lastError().text()}")
+                return False
 
+            # Сохраняем изменения
+            if not self.model.submitAll():
+                MessageHelper.show_error(self, "Ошибка",
+                                         f"Не удалось сохранить изменения: {self.model.lastError().text()}")
+                return False
 
+            return True
 
+        except Exception as e:
+            MessageHelper.show_error(self, "Ошибка", f"Произошла ошибка: {str(e)}")
+            return False

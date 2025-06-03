@@ -17,7 +17,6 @@ class MainWindow(QMainWindow):
 
         self.db = DatabaseManager.connect()
         self.model = DatabaseManager.create_flights_relational_model(self.db)
-        # self.model = DatabaseManager.create_table_model(self.db, "flights")
 
         self.tableView.setModel(self.model)
         TableManager.setup_table_view(self.tableView, self.model)
@@ -45,49 +44,76 @@ class MainWindow(QMainWindow):
         for action, table in menu_actions.items():
             action.triggered.connect(lambda checked, t=table: ReferenceWindow(t, self).exec())
 
-    # def _add_row(self):
-    #     row = self.model.rowCount()
-    #     if self.model.insertRow(row):
-    #         self.tableView.selectRow(row)
-    #         self.tableView.edit(self.model.index(row, 1))
-    #     else:
-    #         MessageHelper.show_error(self, "Ошибка", "Не удалось добавить строку")
-
     def _add_row(self):
-        dialog = EditWindow(self.model, row = None, parent=self)
-        if dialog.exec():
-            dialog.apply_changes()
-            self.model.select()
+        """Добавление новой записи через диалог"""
+        try:
+            dialog = EditWindow(self.model, row=None, parent=self)
+            if dialog.exec():
+                if dialog.apply_changes():
+                    self.model.select()  # Обновляем модель
+                    if hasattr(self, 'statusbar'):
+                        self.statusbar.showMessage(f"Запись добавлена. Всего записей: {self.model.rowCount()}")
+
+        except Exception as e:
+            print(e)
 
     def _edit_row(self):
-        index = self.tableView.currentIndex()
-        if index.isValid():
-            dialog = EditWindow(self.model, row = index.row(), parent = self)
-            if dialog.exec():
-                dialog.apply_changes()
-                self.model.select()
+        """Редактирование выбранной записи"""
+        try:
+            index = self.tableView.currentIndex()
+            if not index.isValid():
+                MessageHelper.show_error(self, "Ошибка", "Не выбрана строка для редактирования")
+                return
 
+            dialog = EditWindow(self.model, row=index.row(), parent=self)
+            if dialog.exec():
+                if dialog.apply_changes():
+                    self.model.select()  # Обновляем модель
+                    if hasattr(self, 'statusbar'):
+                        self.statusbar.showMessage(f"Запись обновлена. Всего записей: {self.model.rowCount()}")
+
+        except Exception as e:
+            print(e)
 
     def _delete_row(self):
+        """Удаление выбранной записи"""
         index = self.tableView.currentIndex()
         if not index.isValid():
-            MessageHelper.show_error(self, "Ошибка", "Не выбрана строка")
+            MessageHelper.show_error(self, "Ошибка", "Не выбрана строка для удаления")
             return
-        self.model.removeRow(index.row())
-        self.model.submitAll()
+
+        # Подтверждение удаления
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(self, "Подтверждение",
+                                     "Вы уверены, что хотите удалить выбранную запись?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.model.removeRow(index.row()):
+                if self.model.submitAll():
+                    if hasattr(self, 'statusbar'):
+                        self.statusbar.showMessage(f"Запись удалена. Всего записей: {self.model.rowCount()}")
+                else:
+                    MessageHelper.show_error(self, "Ошибка",
+                                             f"Не удалось удалить запись: {self.model.lastError().text()}")
+            else:
+                MessageHelper.show_error(self, "Ошибка", "Не удалось удалить строку")
 
     def _refresh(self):
+        """Обновление данных"""
         self.model.setFilter("")
         self.model.select()
         if hasattr(self, 'statusbar'):
             self.statusbar.showMessage(f"Обновлено. Всего записей: {self.model.rowCount()}")
 
     def _show_search(self):
+        """Показ диалога поиска"""
         dialog = SearchWindow(self)
         dialog.search_requested.connect(self._apply_search_filter)
         dialog.exec()
 
     def _apply_search_filter(self, filter_text):
+        """Применение фильтра поиска"""
         self.model.setFilter(filter_text)
         self.model.select()
         if hasattr(self, 'statusbar'):
