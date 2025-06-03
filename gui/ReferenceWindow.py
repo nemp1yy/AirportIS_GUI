@@ -15,11 +15,15 @@ class ReferenceWindow(QDialog):
 
         TableManager.setup_table_view(self.tableView, self.model)
 
-        self._connect_buttons()
-        # self._resize_to_contents()
         # Настройка UI
         TableManager.setup_table_view(self.tableView, self.model)
         self._connect_buttons()
+
+        try:
+            self._resize_to_contents()
+
+        except Exception as e:
+            print(e)
 
     def _connect_buttons(self):
         """Подключение кнопок"""
@@ -29,10 +33,28 @@ class ReferenceWindow(QDialog):
         self.update_button.clicked.connect(self._refresh_model)
 
     def _delete_selected(self):
-        """Удаление выбранной строки"""
+        """Удаление выбранной записи"""
         index = self.tableView.currentIndex()
-        if index.isValid():
-            self.model.removeRow(index.row())
+        if not index.isValid():
+            MessageHelper.show_error(self, "Ошибка", "Не выбрана строка для удаления")
+            return
+
+        # Подтверждение удаления
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(self, "Подтверждение",
+                                     "Вы уверены, что хотите удалить выбранную запись?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.model.removeRow(index.row()):
+                if self.model.submitAll():
+                    if hasattr(self, 'statusbar'):
+                        self.statusbar.showMessage(f"Запись удалена. Всего записей: {self.model.rowCount()}")
+                else:
+                    MessageHelper.show_error(self, "Ошибка",
+                                             f"Не удалось удалить запись: {self.model.lastError().text()}")
+            else:
+                MessageHelper.show_error(self, "Ошибка", "Не удалось удалить строку")
 
     def _save_and_close(self):
         """Сохранение и закрытие"""
@@ -57,7 +79,7 @@ class ReferenceWindow(QDialog):
         self.tableView.resizeColumnsToContents()
 
         # Рассчитываем общую ширину таблицы
-        table_width = self.tableView.verticalHeader().width() + 2  # Учет вертикального заголовка
+        table_width = self.tableView.verticalHeader().width() + 40  # Учет вертикального заголовка
         for column in range(self.model.columnCount()):
             table_width += self.tableView.columnWidth(column)
 
