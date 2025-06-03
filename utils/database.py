@@ -60,7 +60,7 @@ class DatabaseManager:
         # Заголовки
         model.setHeaderData(1, Qt.Orientation.Horizontal, "Номер рейса")
         model.setHeaderData(2, Qt.Orientation.Horizontal, "Авиакомпания")
-        model.setHeaderData(3, Qt.Orientation.Horizontal, "Тип ВС")
+        model.setHeaderData(3, Qt.Orientation.Horizontal, "Самолёт")
         model.setHeaderData(4, Qt.Orientation.Horizontal, "Откуда")
         model.setHeaderData(5, Qt.Orientation.Horizontal, "Куда")
         model.setHeaderData(6, Qt.Orientation.Horizontal, "Время вылета")

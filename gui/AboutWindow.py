@@ -1,6 +1,6 @@
 from PyQt6 import uic, QtCore
 from PyQt6.QtWidgets import QDialog
-from utils.ui_helpers import FormUtils, SearchConditionBuilder, MessageHelper
+from utils.ui_helpers import FormUtils, SearchConditionBuilder, MessageHelper, TableManager
 
 class AboutWindow(QDialog):
     def __init__(self):

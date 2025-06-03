@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>922</width>
-    <height>396</height>
+    <width>924</width>
+    <height>394</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>924</width>
+    <height>394</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Меню</string>
@@ -26,6 +38,18 @@
       <width>921</width>
       <height>301</height>
      </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>921</width>
+      <height>301</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>921</width>
+      <height>301</height>
+     </size>
     </property>
     <property name="editTriggers">
      <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
@@ -155,7 +179,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>922</width>
+     <width>924</width>
      <height>21</height>
     </rect>
    </property>
@@ -167,22 +191,13 @@
      <property name="title">
       <string>Тип база данных</string>
      </property>
-     <widget class="QMenu" name="menuSQLite">
-      <property name="title">
-       <string>SQLite</string>
-      </property>
-     </widget>
-     <widget class="QMenu" name="menuMariaDB">
-      <property name="title">
-       <string>MariaDB</string>
-      </property>
-     </widget>
-     <addaction name="separator"/>
-     <addaction name="menuSQLite"/>
-     <addaction name="menuMariaDB"/>
+     <addaction name="actionSQLite"/>
+     <addaction name="actionMariaDB_MySQL"/>
     </widget>
     <addaction name="separator"/>
     <addaction name="menu_2"/>
+    <addaction name="separator"/>
+    <addaction name="action_6"/>
    </widget>
    <widget class="QMenu" name="menu_3">
     <property name="title">
@@ -193,15 +208,8 @@
     <addaction name="actionAirports"/>
     <addaction name="actionAircraftTypes"/>
    </widget>
-   <widget class="QMenu" name="menu_4">
-    <property name="title">
-     <string>Справка</string>
-    </property>
-    <addaction name="actionAbout"/>
-   </widget>
-   <addaction name="menu"/>
    <addaction name="menu_3"/>
-   <addaction name="menu_4"/>
+   <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action">
@@ -252,6 +260,21 @@
   <action name="action_4">
    <property name="text">
     <string>Подключится</string>
+   </property>
+  </action>
+  <action name="action_6">
+   <property name="text">
+    <string>О программе</string>
+   </property>
+  </action>
+  <action name="actionSQLite">
+   <property name="text">
+    <string>SQLite</string>
+   </property>
+  </action>
+  <action name="actionMariaDB_MySQL">
+   <property name="text">
+    <string>MariaDB / MySQL</string>
    </property>
   </action>
  </widget>

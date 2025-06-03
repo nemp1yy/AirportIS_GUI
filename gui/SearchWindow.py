@@ -1,12 +1,11 @@
 from PyQt6 import uic, QtCore
 from PyQt6.QtWidgets import QDialog
-from utils.database import DatabaseManager, SQLQueries
-from utils.ui_helpers import FormUtils, SearchConditionBuilder, MessageHelper
+from utils.database import DatabaseManager
+from utils.ui_helpers import FormUtils
 
 
 class SearchWindow(QDialog):
-    search_requested = QtCore.pyqtSignal(str, list)
-    reset_requested = QtCore.pyqtSignal()
+    search_requested = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,24 +14,17 @@ class SearchWindow(QDialog):
         self.db = DatabaseManager.connect()
         FormUtils.reset_datetime_edits(self)
 
-        self.pushButton.clicked.connect(self._emit_search)
+        self.pushButton.clicked.connect(self._emit_filter)
         self.pushButton_2.clicked.connect(self._clear_form)
-        self.pushButton_3.clicked.connect(self._reset_search)
+        self.pushButton_3.clicked.connect(self.close)
 
-    def _emit_search(self):
-        """Формирование и отправка поискового запроса"""
+    def _emit_filter(self):
         params = self._get_form_data()
-        conditions, query_params = self._build_search_conditions(params)
-
-        sql = SQLQueries.search_query()
-        if conditions:
-            sql += " AND " + " AND ".join(conditions)
-
-        self.search_requested.emit("", query_params)
+        filter_text = self._build_filter(params)
+        self.search_requested.emit(filter_text)
         self.close()
 
     def _get_form_data(self):
-        """Получение данных из формы"""
         return {
             'flight': self.lineEdit_flight.text().strip(),
             'airline': self.lineEdit_airline.text().strip(),
@@ -51,49 +43,40 @@ class SearchWindow(QDialog):
             )
         }
 
-    def _build_search_conditions(self, params):
-        """Построение условий поиска"""
+    def _build_filter(self, params):
         conditions = []
-        query_params = []
-        builder = SearchConditionBuilder
 
-        # Простые поля
-        simple_fields = [
-            (params['flight'], "f.flight_number"),
-            (params['airline'], "al.name"),
-            (params['gate'], "f.gate"),
-            (params['aircraft_type'], "ac.model")
-        ]
+        if params['flight']:
+            conditions.append(f"flight_number LIKE '%{params['flight']}%'")
+        if params['airline']:
+            conditions.append(f"airline_id IN (SELECT id FROM airlines WHERE name LIKE '%{params['airline']}%')")
+        if params['aircraft_type']:
+            conditions.append(
+                f"aircraft_type_id IN (SELECT id FROM aircraft_types WHERE model LIKE '%{params['aircraft_type']}%')")
+        if params['departure_from']:
+            conditions.append(
+                f"departure_airport_id IN (SELECT id FROM airports WHERE name LIKE '%{params['departure_from']}%')")
+        if params['destination']:
+            conditions.append(
+                f"arrival_airport_id IN (SELECT id FROM airports WHERE name LIKE '%{params['destination']}%')")
+        if params['gate']:
+            conditions.append(f"gate LIKE '%{params['gate']}%'")
 
-        for value, field in simple_fields:
-            builder.add_like_condition(conditions, query_params, value, field)
-
-        # Аэропорты (множественный поиск)
-        airport_fields = ["dap.name", "dap.city", "dap.code"]
-        builder.add_multi_like_condition(conditions, query_params, params['departure_from'], airport_fields)
-
-        arrival_fields = ["aap.name", "aap.city", "aap.code"]
-        builder.add_multi_like_condition(conditions, query_params, params['destination'], arrival_fields)
+        if params['status'] and params['status'] != "Все статусы":
+            conditions.append(f"status_id IN (SELECT id FROM statuses WHERE name = '{params['status']}')")
 
         # Временные диапазоны
-        builder.add_time_range_condition(conditions, query_params,
-                                         *params['departure_range'], "f.departure_time")
-        builder.add_time_range_condition(conditions, query_params,
-                                         *params['arrival_range'], "f.arrival_time")
+        if params['departure_range'][0] and params['departure_range'][1]:
+            conditions.append(
+                f"departure_time BETWEEN '{params['departure_range'][0]}' AND '{params['departure_range'][1]}'")
+        if params['arrival_range'][0] and params['arrival_range'][1]:
+            conditions.append(f"arrival_time BETWEEN '{params['arrival_range'][0]}' AND '{params['arrival_range'][1]}'")
 
-        # Статус
-        if params['status'] != "Все статусы":
-            conditions.append("st.name = ?")
-            query_params.append(params['status'])
-
-        return conditions, query_params
+        return " AND ".join(conditions) if conditions else ""
 
     def _clear_form(self):
-        """Очистка формы"""
         FormUtils.clear_line_edits(self)
         FormUtils.reset_datetime_edits(self)
         FormUtils.reset_combo_boxes(self)
 
-    def _reset_search(self):
-        self.reset_requested.emit()
-        self.close()
+    # def _cancel_search(self):
